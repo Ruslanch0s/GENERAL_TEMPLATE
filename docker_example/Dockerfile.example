@@ -1,0 +1,21 @@
+WORKDIR /src
+COPY requirements.txt requirements.txt
+
+# В строке ниже указано, что мы будем основывать наш новый образ на последней официальной версии Ubuntu
+FROM python:3.8
+
+# Указываем, кто поддерживает docker image (автор)
+LABEL Maintainer = "myname@somecompany.com"
+
+RUN pip3 install -r requirements.txt
+
+RUN apt-get install nginx -y
+
+# Выставить порт 80 только для контейнеров 1 сети
+EXPOSE 80
+
+COPY . .
+
+# Исполнение после компиляции
+CMD ["nginx", "-g", "daemon off;"]
+CMD uvicorn main:app --host 0.0.0.0 --port 80

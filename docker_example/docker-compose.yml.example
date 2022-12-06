@@ -1,0 +1,68 @@
+# Версия Docker API
+version: '3.7'
+
+# Сервисы которые мы будем запускать
+services:
+
+    # Первый сервис - db
+    db:
+        container_name: database_pg
+
+        # Образ на основе которого он будет запускаться
+        image: postgres:12-alpine
+
+        # volumes - соединяет пк и контейнер
+        # Монтируем локальную директорию postgres_data в директорию внутри контейнера /var/lib/postgresql/data/
+        volumes:
+            - postgres_data:/var/lib/postgresql/data/ (папка_пк:контейнера)
+
+        # Переменные окружения
+        environment:
+            POSTGRES_USER: movie
+            POSTGRES_PASSWORD: 123456
+            POSTGRES_DB: movie
+
+        # эти порты будут доступны внутри и опубликованы на хост-компьютере
+        ports:
+            - "3000"                             # container port (3000), assigned to random host port
+            - "3001-3005"                        # container port range (3001-3005), assigned to random host ports
+            - "8000:8000"                        # container port (8000), assigned to given host port (8000)
+            - "9090-9091:8080-8081"              # container port range (8080-8081), assigned to given host port range
+
+        # порты будут доступны другим службам, подключенным к той же сети, но НЕ будут опубликованы на хост-компьютере
+        expose:
+            - "3000"
+
+        restart: always
+        networks:
+            - botnet
+
+    # Второй сервис - app
+    app:
+        # Говорим что его надо будет собрать - в качестве контекста
+        # передаем текущую директорию - в ней лежит Dockerfile
+        build: .
+
+        # Монтируем локальную директорию ./src в директорию
+        # внутри контейнера /opt/app
+        volumes:
+        - ./src:/opt/app
+
+        # Говорим пробросить порт 8000 хоста в порт 8000 контейнера
+        ports:
+        - 8000:8000
+
+        restart: always
+
+        # Зависит от сервиса db - запускать после него
+        depends_on:
+            - db
+
+        networks:
+            - botnet
+
+        command: python app.py
+
+networks:
+    botnet:
+        driver: bridge
